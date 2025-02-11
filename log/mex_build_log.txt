@@ -1,0 +1,15 @@
+
+SIMULINK_SFUNCTION_RTEPATH =
+
+    './mex_project'
+
+
+INC_PATH =
+
+    './mex_project/inc'
+
+
+SRC_PATH =
+
+    './mex_project/src'
+
