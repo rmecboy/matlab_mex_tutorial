@@ -9,7 +9,8 @@
 #define N_STATE  10
 #define N_INPUT   4
 #define N_CONST   4  // 约束数量: x2, x5, x7, x9
-#define MAX_ADMM_ITER 5
+#define MAX_ADMM_ITER 15
+#define N 15                //预测时域
 
 // 预计算矩阵结构体（需在MATLAB生成后填入）
 typedef struct {

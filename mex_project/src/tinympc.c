@@ -52,20 +52,19 @@ static void vec_scalar_add(float y[N_STATE], const float x[N_STATE], float a) {
 }
 
 // 向量投影到约束
-static void project_constraints(float z[N_STATE], const float temp[N_STATE], const float lambda[N_STATE], float rho) {
-    // 约束定义（示例值，需根据实际调整）
-    const float constraints[N_CONST][2] = {
-        {2, 3.0f},   // x2: |x| <= 3.0
-        {5, 0.2f},   // x5: |x| <= 0.2
-        {7, 0.2f},   // x7: |x| <= 0.2
-        {9, 0.2f}    // x9: |x| <= 0.2
-    };
+static void project_constraints(float z[N_STATE], const float temp[N_STATE], float rho) {
+    const int constrained_indices[N_CONST] = {1,4,6,8}; // x2,x5,x7,x9
+    const float limits[N_CONST] = {3.0f,0.2f,0.2f,0.2f};
     
     for (int i = 0; i < N_CONST; i++) {
-        int idx = (int)constraints[i][0];
-        float max_val = constraints[i][1];
-        float temp_val = temp[idx] + lambda[idx] / rho;
-        z[idx] = (temp_val > max_val) ? max_val : (temp_val < -max_val) ? -max_val : temp_val;
+        int idx = constrained_indices[i];
+        float temp_val = temp[idx];
+        z[idx] = fmaxf(fminf(temp_val, limits[i]), -limits[i]);
+    }
+    // 其他状态保持原值
+    for(int i=0; i<N_STATE; i++){
+        if(i != 1 && i !=4 && i !=6 && i !=8) 
+            z[i] = temp[i];
     }
 }
 
@@ -88,48 +87,65 @@ void tinympc_set_reference(TinyMPC_Controller* ctrl, const float x_ref[N_STATE])
 }
 
 // 执行控制计算
+// 执行控制计算
 void tinympc_control(TinyMPC_Controller* ctrl, const float x[N_STATE], float u[N_INPUT]) {
-    // 1. 计算状态偏差
     float x_err[N_STATE];
     for (int i = 0; i < N_STATE; i++) {
         x_err[i] = x[i] - ctrl->x_ref[i];
     }
-    
-    // 2. ADMM迭代
-    float p[N_STATE] = {0.0f};
+
     for (int iter = 0; iter < MAX_ADMM_ITER; iter++) {
-        // 后向传递计算梯度项p
-        float q_tilde[N_STATE];
-        for (int i = 0; i < N_STATE; i++) {
-            q_tilde[i] = ctrl->rho * (ctrl->lambda[i] - ctrl->z[i]);
-        }
-        mat_vec_mult(p, ctrl->model.C2, p);
-        vec_scalar_add(p, q_tilde, 1.0f);
+        // 后向传递，维护每个时间步的p
+        float p[N + 1][N_STATE] = {0}; // p[0]到p[N]
         
-        // 原始更新：计算控制输入
-        float Bp[N_INPUT] = {0.0f};
-        for (int i = 0; i < N_INPUT; i++) {
-            for (int j = 0; j < N_STATE; j++) {
-                Bp[i] += ctrl->model.B[j][i] * p[j];
+        // 计算终端的q_tilde（此处假设q_tilde在终端时间步为0）
+        for (int i = 0; i < N_STATE; i++) {
+            p[N][i] = ctrl->rho * (ctrl->lambda[i] - ctrl->z[i]);
+        }
+
+        // 从时域末端反向迭代
+        for (int k = N - 1; k >= 0; k--) {
+            float q_tilde[N_STATE];
+            for (int i = 0; i < N_STATE; i++) {
+                q_tilde[i] = (k == 0) ? ctrl->rho * (ctrl->lambda[i] - ctrl->z[i]) : 0.0f;
+            }
+            
+            // p[k] = C2 * p[k+1] + q_tilde
+            float temp[N_STATE];
+            mat_vec_mult(temp, ctrl->model.C2, p[k + 1]);
+            for (int i = 0; i < N_STATE; i++) {
+                p[k][i] = temp[i] + q_tilde[i];
             }
         }
+
+        // 原始更新：使用p[0]计算梯度
+        float Bp[N_INPUT] = {0};
+        for (int i = 0; i < N_INPUT; i++) {
+            for (int j = 0; j < N_STATE; j++) {
+                Bp[i] += ctrl->model.B[j][i] * p[0][j]; // B^T * p[0]
+            }
+        }
+
+        // 计算控制输入u
         for (int i = 0; i < N_INPUT; i++) {
             u[i] = 0.0f;
+            // 反馈项
             for (int j = 0; j < N_STATE; j++) {
                 u[i] -= ctrl->model.K_inf[i][j] * x_err[j];
             }
+            // 前馈项
             for (int j = 0; j < N_INPUT; j++) {
                 u[i] -= ctrl->model.C1[i][j] * Bp[j];
             }
         }
-        
+
         // 松弛更新：投影到约束
         float temp[N_STATE];
         for (int i = 0; i < N_STATE; i++) {
             temp[i] = x[i] + ctrl->lambda[i] / ctrl->rho;
         }
-        project_constraints(ctrl->z, temp, ctrl->lambda, ctrl->rho);
-        
+        project_constraints(ctrl->z, temp, ctrl->rho);
+
         // 对偶更新
         for (int i = 0; i < N_STATE; i++) {
             ctrl->lambda[i] += ctrl->rho * (x[i] - ctrl->z[i]);
@@ -152,6 +168,6 @@ void tinympc_state_update(float x[N_STATE], const float A[N_STATE][N_STATE],
     
     // 更新状态: x = Ax + Bu + noise
     for (int i = 0; i < N_STATE; i++) {
-        x[i] = Ax[i] + Bu[i] + noise[i] ;
+         x[i] = Ax[i] + Bu[i] + noise[i] ;
     }
 }

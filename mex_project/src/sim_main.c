@@ -67,8 +67,8 @@ const TinyMPC_Model model = {
 };
 
 TinyMPC_Controller ctrl = {0};
-float x_ref[N_STATE] = {0,0,0,0,0,0,0,0,0,0};
-float x_current[N_STATE] = { 0.0f, 3.5f, 0.0f, 0.0f, 0.25f, 0.0f, -0.25f, 0.0f, 0.3f, 0.0f};
+float x_ref[N_STATE] = { 0.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+float x_current[N_STATE] = {0, 3.5f, 0, 0, 0.25f, 0, -0.25f, 0, 0.3f, 0};
 float u[N_INPUT] = {0};
 
 uint8_t task_init(void)

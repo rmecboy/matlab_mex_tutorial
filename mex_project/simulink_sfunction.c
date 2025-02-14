@@ -52,7 +52,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // mexPrintf("sim running\n");
         task_main();
 
-        *data_out[0] = (double)u[0];
+        *data_out[0] = (double)u[1];
         *data_out[1] = (double)u[1];
         *data_out[2] = (double)u[2];
         *data_out[3] = (double)u[3];
