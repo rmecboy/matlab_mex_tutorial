@@ -148,10 +148,10 @@ void tinympc_state_update(float x[N_STATE], const float A[N_STATE][N_STATE],
     matrix_vector_mult(Bu, (const float*)B, u, N_STATE, N_INPUT);
     
     // 生成过程噪声
-   // add_process_noise(noise, noise_sigma);
+    add_process_noise(noise, noise_sigma);
     
     // 更新状态: x = Ax + Bu + noise
     for (int i = 0; i < N_STATE; i++) {
-        x[i] = Ax[i] + Bu[i] ;
+        x[i] = Ax[i] + Bu[i] + noise[i] ;
     }
 }

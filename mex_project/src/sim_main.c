@@ -1,4 +1,6 @@
 #include "user_config.h"
+#include <stdlib.h>  // 包含 srand() 和 rand()
+#include <time.h>    // 包含 time()
 
 // 预计算模型参数（需从MATLAB生成后填入）
 const TinyMPC_Model model = {
@@ -74,6 +76,8 @@ uint8_t task_init(void)
     // 初始化控制器
     tinympc_init(&ctrl, &model, 18.0f);
     tinympc_set_reference(&ctrl, x_ref);
+      // 初始化随机种子
+    srand(time(NULL));
 }
 
 void task_main()
