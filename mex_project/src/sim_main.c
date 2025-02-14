@@ -1,7 +1,5 @@
 #include "user_config.h"
 
-double num1 = 0;
-
 // 预计算模型参数（需从MATLAB生成后填入）
 const TinyMPC_Model model = {
     .A = {0, 1.0, 0,   0,                                  0,   0,                                  0,   0,       0,   0,

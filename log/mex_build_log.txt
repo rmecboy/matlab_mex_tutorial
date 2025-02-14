@@ -13,3 +13,5 @@ SRC_PATH =
 
     './mex_project/src'
 
+使用 'MinGW64 Compiler (C)' 编译。
+MEX 已成功完成。
