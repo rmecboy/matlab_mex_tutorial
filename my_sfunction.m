@@ -1,4 +1,4 @@
-% ÈýÖÖ²»Í¬µÄsfunction½éÉÜ https://blog.csdn.net/weixin_38342580/article/details/128138667
+% ï¿½ï¿½ï¿½Ö²ï¿½Í¬ï¿½ï¿½sfunctionï¿½ï¿½ï¿½ï¿½ https://blog.csdn.net/weixin_38342580/article/details/128138667
 
 % Level-1 MATLAB S-Function 
 function [sys,x0,str,ts] = Outloop(t,x,u,flag)
@@ -18,23 +18,23 @@ switch flag,
   %%%%%%%%%%%%%%%%%%
   % Initialization %
   %%%%%%%%%%%%%%%%%%
-  case 0,% ³õÊ¼»¯
+  case 0,% ï¿½ï¿½Ê¼ï¿½ï¿½
     [sys,x0,str,ts]=mdlInitializeSizes();
     
     %%%%%%%%%%%%%%%
     % Derivatives %
     %%%%%%%%%%%%%%%
-    %case 1, % Á¬ÐøÊ±¼äµ¼Êý
+    %case 1, % ï¿½ï¿½ï¿½ï¿½Ê±ï¿½äµ¼ï¿½ï¿½
     %   sys=mdlDerivatives(t,x,u);
-  case 2, % ¸üÐÂÀëÉ¢×´Ì¬Á¿
+  case 2, % ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É¢×´Ì¬ï¿½ï¿½
     sys=mdlUpdate(t,x,u);
     %%%%%%%%%%%
     % Outputs %
     %%%%%%%%%%%
-  case 3, % ¼ÆËãÊä³ö
+  case 3, % ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     sys=mdlOutputs(t,x,u);
-    %case 4, % ¼ÆËãÏÂÒ»²½²ÉÑùÊ±¿Ì
-    %case 9, % ½áÊø·ÂÕæ
+    %case 4, % ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+    %case 9, % ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     %%%%%%%%%%%%%%%%%%%
     % Unhandled flags %
     %%%%%%%%%%%%%%%%%%%
@@ -60,16 +60,16 @@ end
 function [sys,x0,str,ts]=mdlInitializeSizes()
 
 sizes = simsizes;
-sizes.NumContStates = 0; %Á¬Ðø×´Ì¬¸öÊý
-sizes.NumDiscStates = 8; %ÀëÉ¢×´Ì¬¸öÊý
-sizes.NumOutputs = 8; %Êä³öÁ¿¸öÊý
-sizes.NumInputs = 8; %ÊäÈëÁ¿¸öÊý
-sizes.DirFeedthrough = 1; %Ö±½ÓÀ¡Í¨±êÖ¾
-sizes.NumSampleTimes = 1; % ÖÁÉÙÓÐÒ»¸ö²ÉÑùÊ±¿Ì
+sizes.NumContStates = 0; %ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½
+sizes.NumDiscStates = 10; %ï¿½ï¿½É¢×´Ì¬ï¿½ï¿½ï¿½ï¿½
+sizes.NumOutputs = 10; %ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+sizes.NumInputs = 10; %ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+sizes.DirFeedthrough = 1; %Ö±ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½Ö¾
+sizes.NumSampleTimes = 1; % ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
 sys = simsizes(sizes);
 x0  = zeros(1,1);
 str = [];
-ts  = [0.000005 0];
+ts  = [0.002 0];
 % end mdlInitializeSizes
 %
 %=============================================================================
@@ -91,8 +91,10 @@ if t < 0.001
   sys(6) = 0;
   sys(7) = 0;
   sys(8) = 0;
+  sys(9) = 0;
+  sys(10) = 0;
 else
-  [sys(1),sys(2),sys(3),sys(4),sys(5),sys(6),sys(7),sys(8)] = simulink_sfunction(u(1),u(2),u(3),u(4),u(5),u(6),u(7),u(8));
+  [sys(1),sys(2),sys(3),sys(4),sys(5),sys(6),sys(7),sys(8),sys(9),sys(10)] = simulink_sfunction(u(1),u(2),u(3),u(4),u(5),u(6),u(7),u(8),u(9),u(10));
 end
 %=============================================================================
 % mdlOutputs
@@ -107,3 +109,5 @@ sys(5) = x(5);
 sys(6) = x(6);
 sys(7) = x(7);
 sys(8) = x(8);
+sys(9) = x(9);
+sys(10) = x(10);
