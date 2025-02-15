@@ -23,17 +23,26 @@ typedef struct {
     float R[N_INPUT][N_INPUT];    // 输入权重
 } TinyMPC_Model;
 
+// 状态约束结构体
+typedef struct {
+    float x2_max;  // 机体速度约束
+    float x5_max;  // 左摆杆角度约束
+    float x7_max;  // 右摆杆角度约束
+    float x9_max;  // 机体倾角约束
+} TinyMPC_Constraints;
+
 // 控制器结构体
 typedef struct {
     TinyMPC_Model model;          // 预计算模型参数
     float rho;                    // ADMM惩罚系数
     float x_ref[N_STATE];         // 参考状态
-    float z[N_STATE];             // 松弛变量
-    float lambda[N_STATE];        // 对偶变量
+     float z[N + 1][N_STATE];      // 时域松弛变量
+    float lambda[N + 1][N_STATE]; // 时域对偶变量
+    TinyMPC_Constraints constraints; // 新增约束参数
 } TinyMPC_Controller;
 
 // 函数声明
-void tinympc_init(TinyMPC_Controller* ctrl, const TinyMPC_Model* model, float rho);
+void tinympc_init(TinyMPC_Controller* ctrl, const TinyMPC_Model* model, float rho, const TinyMPC_Constraints* constraints);
 void tinympc_set_reference(TinyMPC_Controller* ctrl, const float x_ref[N_STATE]);
 void tinympc_control(TinyMPC_Controller* ctrl, const float x[N_STATE], float u[N_INPUT]);
 // 状态更新函数声明

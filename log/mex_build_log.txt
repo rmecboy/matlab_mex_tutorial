@@ -14,4 +14,39 @@ SRC_PATH =
     './mex_project/src'
 
 使用 'MinGW64 Compiler (C)' 编译。
+{错误使用 <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('mex')" style="font-weight:bold">mex</a>
+D:\Users\23532\Desktop\wheel-legged-robotmaster\matlab_mex_tutorial\mex_project\src\sim_main.c:64:5: error:
+expected '}' before '.' token
+     .R = {
+     ^
+D:\Users\23532\Desktop\wheel-legged-robotmaster\matlab_mex_tutorial\mex_project\src\sim_main.c:6:29: note: to
+match this '{'
+ const TinyMPC_Model model = {
+                             ^
+
+
+出错 <a href="matlab:matlab.lang.internal.introspective.errorDocCallback('matalb_mex_make', 'D:\Users\23532\Desktop\wheel-legged-robotmaster\matlab_mex_tutorial\matalb_mex_make.m', 15)" style="font-weight:bold">matalb_mex_make</a> (<a href="matlab: opentoline('D:\Users\23532\Desktop\wheel-legged-robotmaster\matlab_mex_tutorial\matalb_mex_make.m',15,0)">第 15 行</a>)
+result = mex(['-DMATLAB_SIM'],...
+} 
+matalb_mex_make
+[警告: 未找到文件 'simulink_sfunction.mexw64'。] 
+[> 位置：<a href="matlab:matlab.lang.internal.introspective.errorDocCallback('matalb_mex_make', 'D:\Users\23532\Desktop\wheel-legged-robotmaster\matlab_mex_tutorial\matalb_mex_make.m', 3)" style="font-weight:bold">matalb_mex_make</a> (<a href="matlab: opentoline('D:\Users\23532\Desktop\wheel-legged-robotmaster\matlab_mex_tutorial\matalb_mex_make.m',3,0)">第 3 行</a>)] 
+[警告: 未找到文件或者权限被拒绝] 
+[> 位置：<a href="matlab:matlab.lang.internal.introspective.errorDocCallback('matalb_mex_make', 'D:\Users\23532\Desktop\wheel-legged-robotmaster\matlab_mex_tutorial\matalb_mex_make.m', 4)" style="font-weight:bold">matalb_mex_make</a> (<a href="matlab: opentoline('D:\Users\23532\Desktop\wheel-legged-robotmaster\matlab_mex_tutorial\matalb_mex_make.m',4,0)">第 4 行</a>)] 
+
+SIMULINK_SFUNCTION_RTEPATH =
+
+    './mex_project'
+
+
+INC_PATH =
+
+    './mex_project/inc'
+
+
+SRC_PATH =
+
+    './mex_project/src'
+
+使用 'MinGW64 Compiler (C)' 编译。
 MEX 已成功完成。

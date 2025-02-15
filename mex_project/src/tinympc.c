@@ -1,4 +1,5 @@
 #include "tinympc.h"
+#include <string.h>
 
 
 // 生成高斯分布随机数 (均值0, 标准差sigma)
@@ -51,32 +52,29 @@ static void vec_scalar_add(float y[N_STATE], const float x[N_STATE], float a) {
     }
 }
 
-// 向量投影到约束
-static void project_constraints(float z[N_STATE], const float temp[N_STATE], float rho) {
-    const int constrained_indices[N_CONST] = {1,4,6,8}; // x2,x5,x7,x9
-    const float limits[N_CONST] = {3.0f,0.2f,0.2f,0.2f};
-    
-    for (int i = 0; i < N_CONST; i++) {
-        int idx = constrained_indices[i];
-        float temp_val = temp[idx];
-        z[idx] = fmaxf(fminf(temp_val, limits[i]), -limits[i]);
-    }
-    // 其他状态保持原值
-    for(int i=0; i<N_STATE; i++){
-        if(i != 1 && i !=4 && i !=6 && i !=8) 
-            z[i] = temp[i];
-    }
+// 带约束参数的投影函数
+static void project_constraints(float z[N_STATE], const float temp[N_STATE], 
+                               const TinyMPC_Constraints* constraints) {
+    memcpy(z, temp, sizeof(float)*N_STATE);
+    // x2: 速度约束
+    z[1] = fmaxf(fminf(temp[1], constraints->x2_max), -constraints->x2_max);
+    // x5: 左摆杆角度约束
+    z[4] = fmaxf(fminf(temp[4], constraints->x5_max), -constraints->x5_max);
+    // x7: 右摆杆角度约束
+    z[6] = fmaxf(fminf(temp[6], constraints->x7_max), -constraints->x7_max);
+    // x9: 机体倾角约束
+    z[8] = fmaxf(fminf(temp[8], constraints->x9_max), -constraints->x9_max);
 }
 
 // 初始化控制器
-void tinympc_init(TinyMPC_Controller* ctrl, const TinyMPC_Model* model, float rho) {
+void tinympc_init(TinyMPC_Controller* ctrl, const TinyMPC_Model* model, float rho, const TinyMPC_Constraints* constraints) {
     ctrl->model = *model;
     ctrl->rho = rho;
     for (int i = 0; i < N_STATE; i++) {
         ctrl->x_ref[i] = 0.0f;
-        ctrl->z[i] = 0.0f;
-        ctrl->lambda[i] = 0.0f;
     }
+     ctrl->constraints = *constraints;
+        
 }
 
 // 设置参考轨迹
@@ -89,68 +87,89 @@ void tinympc_set_reference(TinyMPC_Controller* ctrl, const float x_ref[N_STATE])
 // 执行控制计算
 // 执行控制计算
 void tinympc_control(TinyMPC_Controller* ctrl, const float x[N_STATE], float u[N_INPUT]) {
+
+    float X[N + 1][N_STATE] = {0}; // 预测时域状态序列
+    float U[N][N_INPUT] = {0};     // 预测时域控制序列
+    float p[N + 1][N_STATE] = {0}; // 梯度项
     float x_err[N_STATE];
+
+    // 初始化当前状态
+        memcpy(X[0], x, sizeof(float)*N_STATE);
+
     for (int i = 0; i < N_STATE; i++) {
         x_err[i] = x[i] - ctrl->x_ref[i];
     }
 
-    for (int iter = 0; iter < MAX_ADMM_ITER; iter++) {
-        // 后向传递，维护每个时间步的p
-        float p[N + 1][N_STATE] = {0}; // p[0]到p[N]
-        
-        // 计算终端的q_tilde（此处假设q_tilde在终端时间步为0）
+for (int iter = 0; iter < MAX_ADMM_ITER; iter++) 
+    {
+        // --- 后向传递计算p ---
+        // 终端条件
         for (int i = 0; i < N_STATE; i++) {
-            p[N][i] = ctrl->rho * (ctrl->lambda[i] - ctrl->z[i]);
+            p[N][i] = ctrl->model.Q[i][i] * (X[N][i] - ctrl->x_ref[i])
+                     + ctrl->rho * (ctrl->lambda[i] - ctrl->z[i]);
         }
-
-        // 从时域末端反向迭代
-        for (int k = N - 1; k >= 0; k--) {
+        
+        // 反向递归
+        for (int k = N-1; k >= 0; k--) {
             float q_tilde[N_STATE];
             for (int i = 0; i < N_STATE; i++) {
-                q_tilde[i] = (k == 0) ? ctrl->rho * (ctrl->lambda[i] - ctrl->z[i]) : 0.0f;
+                q_tilde[i] = ctrl->model.Q[i][i] * (X[k][i] - ctrl->x_ref[i])
+                            + ctrl->rho * (ctrl->lambda[i] - ctrl->z[i]);
             }
-            
             // p[k] = C2 * p[k+1] + q_tilde
             float temp[N_STATE];
-            mat_vec_mult(temp, ctrl->model.C2, p[k + 1]);
+            mat_vec_mult(temp, ctrl->model.C2, p[k+1]);
             for (int i = 0; i < N_STATE; i++) {
                 p[k][i] = temp[i] + q_tilde[i];
             }
         }
 
-        // 原始更新：使用p[0]计算梯度
-        float Bp[N_INPUT] = {0};
-        for (int i = 0; i < N_INPUT; i++) {
-            for (int j = 0; j < N_STATE; j++) {
-                Bp[i] += ctrl->model.B[j][i] * p[0][j]; // B^T * p[0]
+      // --- 前向传递计算控制输入 ---
+        for (int k = 0; k < N; k++) {
+            // 计算控制输入u = -K*(X - x_ref) - C1*B'*p
+            float Bp[N_INPUT] = {0};
+            for (int i = 0; i < N_INPUT; i++) {
+                for (int j = 0; j < N_STATE; j++) {
+                    Bp[i] += ctrl->model.B[j][i] * p[k+1][j];
+                }
+            }
+            for (int i = 0; i < N_INPUT; i++) {
+                U[k][i] = 0.0f;
+                for (int j = 0; j < N_STATE; j++) {
+                    U[k][i] -= ctrl->model.K_inf[i][j] * (X[k][j] - ctrl->x_ref[j]);
+                }
+                for (int j = 0; j < N_INPUT; j++) {
+                    U[k][i] -= ctrl->model.C1[i][j] * Bp[j];
+                }
+            }
+            // 状态更新: X[k+1] = A*X[k] + B*U[k]
+            float Ax[N_STATE], Bu[N_STATE];
+            mat_vec_mult(Ax, ctrl->model.A, X[k]);
+            matrix_vector_mult(Bu, (float*)ctrl->model.B, U[k], N_STATE, N_INPUT);
+            for (int i = 0; i < N_STATE; i++) {
+                X[k+1][i] = Ax[i] + Bu[i];
             }
         }
-
-        // 计算控制输入u
-        for (int i = 0; i < N_INPUT; i++) {
-            u[i] = 0.0f;
-            // 反馈项
-            for (int j = 0; j < N_STATE; j++) {
-                u[i] -= ctrl->model.K_inf[i][j] * x_err[j];
-            }
-            // 前馈项
-            for (int j = 0; j < N_INPUT; j++) {
-                u[i] -= ctrl->model.C1[i][j] * Bp[j];
-            }
-        }
-
-        // 松弛更新：投影到约束
+       // --- 松弛更新：时域投影 ---
+    for (int k = 0; k < N; k++) {
         float temp[N_STATE];
+        // 计算 temp = X[k] + lambda[k]/rho
         for (int i = 0; i < N_STATE; i++) {
-            temp[i] = x[i] + ctrl->lambda[i] / ctrl->rho;
+            temp[i] = X[k][i] + ctrl->lambda[k][i] / ctrl->rho;
         }
-        project_constraints(ctrl->z, temp, ctrl->rho);
+        // 投影到约束集
+        project_constraints(ctrl->z[k], temp, &ctrl->constraints);
+    }
 
-        // 对偶更新
+    // --- 对偶更新：lambda = lambda + rho*(X - z) ---
+    for (int k = 0; k < N; k++) {
         for (int i = 0; i < N_STATE; i++) {
-            ctrl->lambda[i] += ctrl->rho * (x[i] - ctrl->z[i]);
+            ctrl->lambda[k][i] += ctrl->rho * (X[k][i] - ctrl->z[k][i]);
         }
     }
+    // 应用第一个控制输入
+    memcpy(u, U[0], sizeof(float)*N_INPUT);
+}
 }
 void tinympc_state_update(float x[N_STATE], const float A[N_STATE][N_STATE], 
                           const float B[N_STATE][N_INPUT], const float u[N_INPUT], 

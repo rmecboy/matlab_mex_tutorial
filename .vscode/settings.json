@@ -58,6 +58,8 @@
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
   "files.associations": {
     "user_config.h": "c",
-    "tinympc.h": "c"
-  }
+    "tinympc.h": "c",
+    "stdlib.h": "c"
+  },
+  "stm32-for-vscode.makePath": false
 }
